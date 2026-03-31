@@ -1,0 +1,1805 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Розклад Школи Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<style>
+:root {
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --bg: #f9fafb;
+  --surface: #ffffff;
+  --border: #e5e7eb;
+  --text: #1f2937;
+  --text-muted: #6b7280;
+  --shadow: 0 1px 3px rgba(0,0,0,0.1);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+  --current-lesson: #dcfce7;
+  --current-lesson-border: #86efac;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* HEADER */
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary);
+}
+.nav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.nav-btn {
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+.nav-btn:hover { background: var(--bg); color: var(--text); }
+.nav-btn.active { background: var(--primary); color: white; }
+
+/* MAIN */
+main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* PAGE */
+.page { display: none; }
+.page.active { display: block; }
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.page-title { font-size: 24px; font-weight: 700; color: var(--text); }
+.page-subtitle { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+
+/* BUTTONS */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 20px; border: none; border-radius: 8px;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+.btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--border); }
+.btn-danger { background: #fee2e2; color: var(--danger); }
+.btn-danger:hover { background: #fecaca; }
+.btn-success { background: #d1fae5; color: #059669; }
+.btn-success:hover { background: #a7f3d0; }
+.btn-sm { padding: 6px 12px; font-size: 13px; }
+.btn-block { width: 100%; justify-content: center; margin-top: 10px; }
+
+/* CARDS */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+  margin-bottom: 20px;
+}
+
+/* GRID */
+.grid { display: grid; gap: 20px; }
+.grid-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 1024px) { .grid-3, .grid-2 { grid-template-columns: 1fr; } }
+
+/* FORMS */
+.form-group { margin-bottom: 16px; }
+label { display: block; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+input, select {
+  width: 100%; padding: 10px 14px; border: 1.5px solid var(--border);
+  border-radius: 8px; font-size: 14px; font-family: inherit;
+}
+input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* TABLES */
+.table-wrap { 
+  overflow-x: auto; 
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  position: relative;
+}
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th {
+  background: var(--bg); text-align: left; padding: 12px 16px;
+  font-size: 12px; font-weight: 600; text-transform: uppercase;
+  color: var(--text-muted); border-bottom: 2px solid var(--border);
+}
+td { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+tr:hover { background: var(--bg); }
+
+/* TEACHER SCHEDULE TABLE - FIXED STICKY COLUMN */
+.teacher-table { 
+  min-width: 1200px; 
+  border: none;
+  border-radius: 12px; 
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* Header cells */
+.teacher-table th { 
+  padding: 10px 8px; 
+  text-align: center; 
+  border: 1px solid var(--border); 
+  background: var(--bg);
+  position: relative;
+}
+
+.teacher-table th.day-header { 
+  font-size: 13px; 
+  font-weight: 700; 
+  color: var(--text); 
+  background: #f3f4f6; 
+  padding: 12px 8px; 
+  border-left: 2px solid #000;
+}
+
+.teacher-table th.day-header:first-of-type {
+  border-left: 1px solid var(--border);
+}
+
+.teacher-table th.lesson-header { 
+  font-size: 11px; 
+  font-weight: 600; 
+  color: var(--text-muted); 
+  padding: 8px 4px; 
+  min-width: 55px; 
+}
+
+/* First column header - STICKY */
+.teacher-table th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 50;
+  background: #f9fafb;
+  min-width: 260px;
+  max-width: 260px;
+  text-align: left;
+  padding: 12px 16px;
+  border-right: 2px solid #000;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.08);
+}
+
+/* Data cells */
+.teacher-table td { 
+  border: 1px solid var(--border); 
+  padding: 0; 
+  text-align: center; 
+  height: 50px; 
+  min-width: 55px; 
+}
+
+/* First column cells - STICKY */
+.teacher-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 40;
+  background: var(--surface);
+  min-width: 260px;
+  max-width: 260px;
+  text-align: left;
+  padding: 12px 16px;
+  border-right: 2px solid #000;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.08);
+  vertical-align: middle;
+}
+
+/* Ensure sticky column stays on top when scrolling */
+.teacher-table thead th:first-child {
+  z-index: 60;
+}
+
+/* Day separator in data rows */
+.teacher-table td.day-separator {
+  border-left: 2px solid #000;
+}
+
+/* CURRENT LESSON HIGHLIGHT */
+.teacher-cell.current-lesson {
+  background: var(--current-lesson) !important;
+  border: 2px solid var(--current-lesson-border);
+}
+
+.teacher-cell {
+  height: 100%; 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center;
+  justify-content: center; 
+  cursor: pointer; 
+  transition: background 0.15s;
+  font-weight: 600; 
+  font-size: 14px; 
+  padding: 4px 2px;
+}
+.teacher-cell:hover { background: #fef3c7; }
+.teacher-cell.has-class { cursor: default; background: white; }
+.teacher-cell.conflict { 
+  background: #fee2e2 !important; 
+  border: 2px solid var(--danger); 
+  animation: pulse 2s infinite; 
+}
+.teacher-cell .class-num { 
+  font-size: 15px; 
+  color: var(--text); 
+  font-weight: 700; 
+}
+.teacher-cell .subject-abbrev { 
+  font-size: 10px; 
+  color: var(--text-muted); 
+  display: block; 
+  margin-top: 2px; 
+  font-weight: 500; 
+}
+.teacher-cell .class-sub { 
+  font-size: 9px; 
+  color: var(--danger); 
+  font-weight: 700; 
+  margin-top: 2px; 
+}
+.teacher-cell.conflict .class-num { 
+  color: var(--danger); 
+}
+
+@keyframes pulse { 
+  0%, 100% { opacity: 1; } 
+  50% { opacity: 0.85; } 
+}
+
+/* TEACHER INFO */
+.teacher-info { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 8px; 
+  width: 100%;
+}
+.teacher-name { 
+  font-weight: 600; 
+  font-size: 14px; 
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.teacher-load-bar { 
+  width: 100%; 
+  height: 6px; 
+  background: #e5e7eb; 
+  border-radius: 3px; 
+  overflow: hidden; 
+}
+.teacher-load-fill { 
+  height: 100%; 
+  border-radius: 3px; 
+  transition: width 0.3s ease; 
+}
+.teacher-load-fill.ok { background: var(--success); }
+.teacher-load-fill.warn { background: var(--warning); }
+.teacher-load-fill.over { background: var(--danger); }
+.teacher-load-text { 
+  font-size: 10px; 
+  color: var(--text-muted); 
+  display: flex; 
+  justify-content: space-between;
+  white-space: nowrap;
+}
+
+/* BADGES */
+.badge { 
+  display: inline-flex; 
+  align-items: center; 
+  padding: 4px 10px; 
+  border-radius: 20px; 
+  font-size: 11px; 
+  font-weight: 600; 
+}
+.badge-primary { background: #e0e7ff; color: var(--primary); }
+.badge-success { background: #d1fae5; color: var(--success); }
+.badge-warning { background: #fef3c7; color: var(--warning); }
+.badge-danger { background: #fee2e2; color: var(--danger); }
+
+/* CLASS TAGS */
+.class-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.class-tag {
+  padding: 8px 16px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.class-tag:hover {
+  background: var(--surface-warm);
+  border-color: var(--primary);
+}
+.class-tag.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+/* FILTERS */
+.filters { 
+  display: flex; 
+  gap: 12px; 
+  margin-bottom: 20px; 
+  flex-wrap: wrap; 
+  align-items: center; 
+}
+.filters select, .filters input { 
+  width: auto; 
+  min-width: 160px; 
+}
+
+/* MODAL */
+.modal-overlay {
+  display: none; 
+  position: fixed; 
+  inset: 0; 
+  background: rgba(0,0,0,0.5);
+  z-index: 200; 
+  align-items: center; 
+  justify-content: center; 
+  backdrop-filter: blur(3px);
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface); 
+  border-radius: 16px; 
+  padding: 28px;
+  width: 100%; 
+  max-width: 480px; 
+  max-height: 90vh; 
+  overflow-y: auto; 
+  box-shadow: var(--shadow-md);
+}
+.modal-title { 
+  font-size: 18px; 
+  font-weight: 700; 
+  margin-bottom: 20px; 
+  padding-bottom: 16px; 
+  border-bottom: 1px solid var(--border); 
+}
+.modal-footer { 
+  display: flex; 
+  gap: 10px; 
+  justify-content: flex-end; 
+  margin-top: 24px; 
+  padding-top: 16px; 
+  border-top: 1px solid var(--border); 
+}
+
+/* EMPTY STATE */
+.empty { 
+  text-align: center; 
+  padding: 48px 20px; 
+  color: var(--text-muted); 
+}
+.empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty h3 { font-size: 16px; margin-bottom: 6px; color: var(--text); }
+
+/* NOTIFICATION */
+.notification {
+  position: fixed; 
+  bottom: 24px; 
+  right: 24px; 
+  background: var(--text); 
+  color: white;
+  padding: 12px 20px; 
+  border-radius: 10px; 
+  font-size: 14px; 
+  font-weight: 500;
+  box-shadow: var(--shadow-md); 
+  z-index: 999; 
+  animation: slideIn 0.3s ease;
+}
+@keyframes slideIn { 
+  from { transform: translateY(20px); opacity: 0; } 
+  to { transform: translateY(0); opacity: 1; } 
+}
+
+/* LEGEND */
+.legend { 
+  display: flex; 
+  gap: 16px; 
+  flex-wrap: wrap; 
+  margin-top: 16px; 
+  font-size: 13px; 
+  color: var(--text-muted); 
+}
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-dot { 
+  width: 12px; 
+  height: 12px; 
+  border-radius: 50%; 
+  background: var(--warning); 
+}
+
+/* CLASS SCHEDULE VIEW */
+.class-schedule-grid {
+  display: grid;
+  grid-template-columns: 80px repeat(5, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.cs-header {
+  background: var(--bg);
+  padding: 12px 8px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-muted);
+  border-bottom: 2px solid var(--border);
+}
+.cs-lesson-header {
+  background: var(--surface);
+  padding: 10px 6px;
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  border-right: 1px solid var(--border);
+  min-height: 60px;
+}
+.cs-lesson-num {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.cs-lesson-time {
+  font-size: 9px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  text-align: center;
+}
+.cs-day-header {
+  background: #f3f4f6;
+  padding: 12px 8px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--text);
+  border-bottom: 2px solid var(--border);
+}
+.cs-cell {
+  background: var(--surface);
+  padding: 8px 6px;
+  font-size: 12px;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.2s;
+  border-right: 1px solid var(--border);
+}
+.cs-cell:hover { background: #f3f4f6; }
+.cs-cell.has-lesson { cursor: default; background: #fff; }
+.cs-cell.current-lesson {
+  background: var(--current-lesson) !important;
+  border: 2px solid var(--current-lesson-border);
+}
+.cs-subject { font-weight: 700; color: var(--text); margin-bottom: 4px; font-size: 13px; }
+.cs-teacher { font-size: 10px; color: var(--text-muted); }
+.cs-subgroup { font-size: 9px; color: var(--danger); font-weight: 600; margin-top: 2px; }
+.cs-empty { color: var(--border); font-size: 18px; }
+
+/* SETTINGS PAGE */
+.settings-section { 
+  margin-bottom: 30px; 
+  padding-bottom: 30px; 
+  border-bottom: 1px solid var(--border); 
+}
+.settings-section:last-child { border-bottom: none; }
+.settings-title { 
+  font-size: 18px; 
+  font-weight: 700; 
+  margin-bottom: 16px; 
+  color: var(--text); 
+}
+
+/* LESSON TIMES TABLE */
+.lesson-times-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.lesson-times-table th {
+  background: var(--bg);
+  padding: 12px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+.lesson-times-table td {
+  padding: 8px;
+  border: 1px solid var(--border);
+  text-align: center;
+}
+.lesson-times-table input {
+  width: 100px;
+  text-align: center;
+}
+
+@media print {
+  header, .nav, .btn, .filters, .modal-overlay { display: none !important; }
+  main { padding: 0; }
+  .card { box-shadow: none; border: 1px solid #ccc; }
+  .teacher-cell.conflict { border: 2px solid #000; background: #fcc !important; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div class="logo">📚 Розклад Школи Pro</div>
+    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('quick-import-file').click()" title="Відкрити збережені налаштування (.json)">
+      📂
+    </button>
+    <button class="btn btn-secondary btn-sm" onclick="exportAllData()" title="Зберегти налаштування в файл (.json)">
+      💾
+    </button>
+    <input type="file" id="quick-import-file" accept=".json" style="display:none;" onchange="quickImportData(this)">
+  </div>
+  <nav class="nav">
+    <button class="nav-btn active" onclick="showPage('teachers', this)">👨‍🏫 Вчителі</button>
+    <button class="nav-btn" onclick="showPage('classes', this)">🎓 Класи</button>
+    <button class="nav-btn" onclick="showPage('schedule', this)">📋 Розклад вчителів</button>
+    <button class="nav-btn" onclick="showPage('class-schedule', this)">📅 Розклад класів</button>
+    <button class="nav-btn" onclick="showPage('settings', this)" title="Налаштування">⚙️</button>
+  </nav>
+</header>
+
+<main>
+  <!-- TEACHERS PAGE -->
+  <div class="page active" id="page-teachers">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Вчителі</div>
+        <div class="page-subtitle">Додайте всіх вчителів школи</div>
+      </div>
+      <button class="btn btn-primary" onclick="openTeacherModal()">+ Додати вчителя</button>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Прізвище та ім'я</th>
+              <th>Предмети</th>
+              <th>Навантаження</th>
+              <th>Дії</th>
+            </tr>
+          </thead>
+          <tbody id="teachers-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLASSES PAGE -->
+  <div class="page" id="page-classes">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Класи</div>
+        <div class="page-subtitle">Створіть класи для розкладу</div>
+      </div>
+      <button class="btn btn-primary" onclick="openClassModal()">+ Додати клас</button>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Клас</th>
+              <th>Учнів</th>
+              <th>Дії</th>
+            </tr>
+          </thead>
+          <tbody id="classes-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEACHER SCHEDULE PAGE -->
+  <div class="page" id="page-schedule">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Розклад вчителів</div>
+        <div class="page-subtitle">Натисніть на клітинку, щоб додати урок. 🔴 Червоні = конфлікт</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-success" onclick="exportTeacherScheduleXLSX()">📥 XLSX</button>
+        <button class="btn btn-secondary" onclick="printSchedule()">🖨 Друк</button>
+        <button class="btn btn-danger btn-sm" onclick="clearAllSchedule()">🗑 Очистити все</button>
+      </div>
+    </div>
+
+    <div class="filters">
+      <select id="filter-day" onchange="renderSchedule()">
+        <option value="all">Всі дні</option>
+        <option value="0">Понеділок</option>
+        <option value="1">Вівторок</option>
+        <option value="2">Середа</option>
+        <option value="3">Четвер</option>
+        <option value="4">П'ятниця</option>
+      </select>
+      <select id="filter-lesson" onchange="renderSchedule()">
+        <option value="all">Всі уроки</option>
+        <option value="0">1 урок</option>
+        <option value="1">2 урок</option>
+        <option value="2">3 урок</option>
+        <option value="3">4 урок</option>
+        <option value="4">5 урок</option>
+        <option value="5">6 урок</option>
+        <option value="6">7 урок</option>
+        <option value="7">8 урок</option>
+      </select>
+      <input type="text" id="filter-search" placeholder="🔍 Пошук вчителя..." oninput="renderSchedule()">
+    </div>
+
+    <div class="card" style="padding: 0;">
+      <div class="table-wrap" style="overflow-x: auto; position: relative;">
+        <table class="teacher-table" id="schedule-table"></table>
+      </div>
+      <div class="legend" style="padding: 16px;">
+        <div class="legend-item"><span class="legend-dot" style="background:var(--success)"></span>0-80%</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--warning)"></span>80-100%</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--danger)"></span>>100% (перевантаження)</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--danger);animation:pulse 2s infinite"></span>Конфлікт</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--current-lesson);border:1px solid var(--current-lesson-border)"></span>Поточний урок</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLASS SCHEDULE PAGE -->
+  <div class="page" id="page-class-schedule">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Розклад класів</div>
+        <div class="page-subtitle">Перегляд розкладу для конкретного класу</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-success" onclick="exportClassScheduleXLSX()">📥 XLSX</button>
+        <button class="btn btn-secondary" onclick="printSchedule()">🖨 Друк</button>
+      </div>
+    </div>
+
+    <!-- CLASS TAGS (instead of dropdown) -->
+    <div class="class-tags" id="class-tags-container">
+      <!-- Tags will be generated here -->
+    </div>
+
+    <div id="class-schedule-container">
+      <div class="empty">
+        <div class="empty-icon">📅</div>
+        <h3>Оберіть клас для перегляду розкладу</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS PAGE -->
+  <div class="page" id="page-settings">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Налаштування системи</div>
+        <div class="page-subtitle">Управління даними та розкладом</div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-title">🕐 Час уроків</div>
+      <div class="card">
+        <p style="color:var(--text-muted);margin-bottom:16px;font-size:14px;">
+          Вкажіть тривалість уроку і час початку кожного уроку — час завершення розрахується автоматично.
+        </p>
+        <div class="form-group" style="max-width:280px;">
+          <label>⏱ Тривалість уроку (хвилин)</label>
+          <input type="number" id="lesson-duration" min="1" max="120" value="45" style="width:100%;" oninput="recalcLessonEndTimes()">
+        </div>
+        <div class="table-wrap">
+          <table class="lesson-times-table">
+            <thead>
+              <tr>
+                <th>Урок №</th>
+                <th>Початок</th>
+                <th>Завершення</th>
+              </tr>
+            </thead>
+            <tbody id="lesson-times-tbody"></tbody>
+          </table>
+        </div>
+        <button class="btn btn-primary" onclick="saveLessonTimes()" style="margin-top:16px;">💾 Зберегти час уроків</button>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-title">🗑 Управління даними</div>
+      <div class="card">
+        <p style="color:var(--text-muted);margin-bottom:16px;font-size:14px;">
+          Дії з поточними даними. Обережно: ці дії неможливо скасувати.
+        </p>
+        <button class="btn btn-danger btn-block" onclick="clearAllData()">⚠️ Повне очищення всіх даних</button>
+        <div style="margin-top:20px;padding:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">
+          <div style="font-weight:600;color:#166534;margin-bottom:4px;">✅ Автосейв увімкнено</div>
+          <div style="font-size:12px;color:#15803d;">Усі зміни зберігаються автоматично у браузері.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="settings-title">ℹ️ Інформація про систему</div>
+      <div class="grid grid-3">
+        <div>
+          <div style="font-size:24px;font-weight:700;color:var(--primary);" id="info-teachers">0</div>
+          <div style="font-size:13px;color:var(--text-muted);">Вчителів</div>
+        </div>
+        <div>
+          <div style="font-size:24px;font-weight:700;color:var(--primary);" id="info-classes">0</div>
+          <div style="font-size:13px;color:var(--text-muted);">Класів</div>
+        </div>
+        <div>
+          <div style="font-size:24px;font-weight:700;color:var(--primary);" id="info-lessons">0</div>
+          <div style="font-size:13px;color:var(--text-muted);">Уроків у розкладі</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- TEACHER MODAL -->
+<div class="modal-overlay" id="teacher-modal">
+  <div class="modal">
+    <div class="modal-title" id="teacher-modal-title">➕ Додати вчителя</div>
+    <div class="form-group">
+      <label>Прізвище</label>
+      <input type="text" id="t-last" placeholder="Іваненко">
+    </div>
+    <div class="form-group">
+      <label>Ім'я</label>
+      <input type="text" id="t-first" placeholder="Іван">
+    </div>
+    <div class="form-group">
+      <label>По батькові</label>
+      <input type="text" id="t-middle" placeholder="Іванович">
+    </div>
+    <div class="form-group">
+      <label>Предмети (через кому)</label>
+      <input type="text" id="t-subjects" placeholder="Математика, Фізика">
+    </div>
+    <div class="form-group">
+      <label>Навантаження (годин/тиждень)</label>
+      <input type="number" id="t-hours" placeholder="18" min="1" max="40" value="18">
+    </div>
+    <input type="hidden" id="t-id">
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('teacher-modal')">Скасувати</button>
+      <button class="btn btn-primary" onclick="saveTeacher()">Зберегти</button>
+    </div>
+  </div>
+</div>
+
+<!-- CLASS MODAL -->
+<div class="modal-overlay" id="class-modal">
+  <div class="modal">
+    <div class="modal-title" id="class-modal-title">➕ Додати клас</div>
+    <div class="form-group">
+      <label>Клас (напр. 5-А)</label>
+      <input type="text" id="c-name" placeholder="5-А">
+    </div>
+    <div class="form-group">
+      <label>Кількість учнів</label>
+      <input type="number" id="c-students" placeholder="25">
+    </div>
+    <input type="hidden" id="c-id">
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('class-modal')">Скасувати</button>
+      <button class="btn btn-primary" onclick="saveClass()">Зберегти</button>
+    </div>
+  </div>
+</div>
+
+<!-- LESSON MODAL -->
+<div class="modal-overlay" id="lesson-modal">
+  <div class="modal">
+    <div class="modal-title">📖 Урок</div>
+    <div id="lesson-info" style="background:#f3f4f6;padding:12px;border-radius:8px;margin-bottom:16px;font-size:13px;"></div>
+    
+    <div class="form-group">
+      <label>Клас</label>
+      <select id="l-class"></select>
+    </div>
+    <div class="form-group">
+      <label>Предмет</label>
+      <select id="l-subject"></select>
+    </div>
+    <div class="form-group">
+      <label>Підгрупа (якщо є)</label>
+      <select id="l-subgroup">
+        <option value="">Без підгрупи</option>
+        <option value="I">I підгрупа</option>
+        <option value="II">II підгрупа</option>
+        <option value="III">III підгрупа</option>
+      </select>
+    </div>
+    
+    <input type="hidden" id="l-teacher">
+    <input type="hidden" id="l-day">
+    <input type="hidden" id="l-lesson">
+    
+    <div class="modal-footer" style="flex-direction: column; gap: 10px;">
+      <div style="display: flex; gap: 10px; width: 100%;">
+        <button class="btn btn-secondary" style="flex: 1;" onclick="closeModal('lesson-modal')">Скасувати</button>
+        <button class="btn btn-primary" style="flex: 1;" onclick="saveLesson()">Зберегти</button>
+      </div>
+      <button id="btn-delete-lesson" class="btn btn-danger btn-block" onclick="deleteLessonFromModal()" style="display: none;">🗑 Видалити цей урок</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== STATE ====================
+let data = {
+  teachers: [],
+  classes: [],
+  schedule: {},
+  lessonTimes: [
+    { start: '08:30', end: '09:15' },
+    { start: '09:25', end: '10:10' },
+    { start: '10:30', end: '11:15' },
+    { start: '11:35', end: '12:20' },
+    { start: '12:30', end: '13:15' },
+    { start: '13:25', end: '14:10' },
+    { start: '14:20', end: '15:05' },
+    { start: '15:10', end: '15:50' }
+  ]
+};
+
+const DAYS = ['Понеділок', 'Вівторок', 'Середа', 'Четвер', "П'ятниця"];
+const LESSONS = 8;
+const STORAGE_KEY = 'school_schedule_pro_v4';
+let selectedClassId = '';
+
+// ==================== LOAD/SAVE ====================
+function load() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      data = { ...data, ...parsed };
+      if (!data.lessonTimes || data.lessonTimes.length !== 8) {
+        data.lessonTimes = [
+			{ start: '08:30', end: '09:15' },
+			{ start: '09:25', end: '10:10' },
+			{ start: '10:30', end: '11:15' },
+			{ start: '11:35', end: '12:20' },
+			{ start: '12:30', end: '13:15' },
+			{ start: '13:25', end: '14:10' },
+			{ start: '14:20', end: '15:05' },
+			{ start: '15:10', end: '15:50' }
+        ];
+      }
+      console.log('✅ Дані завантажено з localStorage');
+    }
+  } catch(e) { 
+    console.error('❌ Помилка завантаження:', e); 
+    notify('Помилка завантаження даних ⚠️');
+  }
+  updateStats();
+  updateInfo();
+  renderTeachers();
+  renderClasses();
+  renderClassTags();
+  renderLessonTimes();
+  startCurrentLessonTimer();
+}
+
+function save() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    updateStats();
+    updateInfo();
+  } catch(e) {
+    console.error('❌ Помилка збереження:', e);
+    notify('Помилка збереження! Місце заповнено? ⚠️');
+  }
+}
+
+// ==================== NAV ====================
+function showPage(pageId, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + pageId).classList.add('active');
+  
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  
+  if (pageId === 'schedule') renderSchedule();
+  if (pageId === 'class-schedule') {
+    renderClassTags();
+    renderClassSchedule();
+  }
+  if (pageId === 'settings') {
+    updateInfo();
+    renderLessonTimes();
+  }
+}
+
+// ==================== STATS & HELPERS ====================
+function updateStats() {}
+
+function updateInfo() {
+  document.getElementById('info-teachers').textContent = data.teachers.length;
+  document.getElementById('info-classes').textContent = data.classes.length;
+  
+  let lessons = 0;
+  for (const t of data.teachers) {
+    for (const d in data.schedule[t.id] || {}) {
+      lessons += Object.keys(data.schedule[t.id][d]).length;
+    }
+  }
+  document.getElementById('info-lessons').textContent = lessons;
+}
+
+function countTeacherLessons(teacherId) {
+  let count = 0;
+  const teacherSchedule = data.schedule[teacherId] || {};
+  for (const d in teacherSchedule) count += Object.keys(teacherSchedule[d]).length;
+  return count;
+}
+
+function getTeacherLoadInfo(teacherId) {
+  const teacher = data.teachers.find(t => t.id === teacherId);
+  if (!teacher) return { used: 0, total: 0, percent: 0, status: 'ok' };
+  const used = countTeacherLessons(teacherId);
+  const total = teacher.hours || 18;
+  const percent = Math.round((used / total) * 100);
+  let status = 'ok';
+  if (percent > 100) status = 'over';
+  else if (percent >= 80) status = 'warn';
+  return { used, total, percent, status };
+}
+
+// ==================== CLASS TAGS ====================
+function renderClassTags() {
+  const container = document.getElementById('class-tags-container');
+  if (!data.classes.length) {
+    container.innerHTML = '<div class="empty" style="padding:20px;"><p style="color:var(--text-muted);">Класи ще не додані</p></div>';
+    return;
+  }
+  
+  let html = '';
+  data.classes.forEach(c => {
+    const isActive = c.id === selectedClassId ? 'active' : '';
+    html += `<div class="class-tag ${isActive}" onclick="selectClass('${c.id}')">${c.name}</div>`;
+  });
+  container.innerHTML = html;
+}
+
+function selectClass(classId) {
+  selectedClassId = classId;
+  renderClassTags();
+  renderClassSchedule();
+}
+
+// ==================== CURRENT LESSON ====================
+function getCurrentLesson() {
+  const now = new Date();
+  const day = now.getDay();
+  
+  // Convert to school day (0 = Sunday, 1 = Monday, etc.)
+  if (day === 0 || day === 6) return null; // Weekend
+  
+  const schoolDay = day - 1; // 0 = Monday, 4 = Friday
+  
+  const minutes = now.getHours() * 60 + now.getMinutes();
+  
+  for (let i = 0; i < data.lessonTimes.length; i++) {
+    const lt = data.lessonTimes[i];
+    const startParts = lt.start.split(':');
+    const endParts = lt.end.split(':');
+    
+    const startMinutes = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
+    const endMinutes = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
+    
+    if (minutes >= startMinutes && minutes < endMinutes) {
+      return { day: schoolDay, lesson: i };
+    }
+  }
+  
+  return null;
+}
+
+function startCurrentLessonTimer() {
+  highlightCurrentLesson();
+  setInterval(highlightCurrentLesson, 60000); // Update every minute
+}
+
+function highlightCurrentLesson() {
+  const current = getCurrentLesson();
+  
+  // Remove all current-lesson highlights
+  document.querySelectorAll('.current-lesson').forEach(el => {
+    el.classList.remove('current-lesson');
+  });
+  
+  if (!current) return;
+  
+  // Highlight in teacher schedule
+  document.querySelectorAll(`[data-day="${current.day}"][data-lesson="${current.lesson}"]`).forEach(el => {
+    el.classList.add('current-lesson');
+  });
+  
+  // Highlight in class schedule
+  if (selectedClassId) {
+    renderClassSchedule();
+  }
+}
+
+// ==================== LESSON TIMES ====================
+function getLessonDuration() {
+  const el = document.getElementById('lesson-duration');
+  return el ? (parseInt(el.value) || 45) : (data.lessonDuration || 45);
+}
+
+function addMinutes(timeStr, mins) {
+  const [h, m] = timeStr.split(':').map(Number);
+  const total = h * 60 + m + mins;
+  const hh = String(Math.floor(total / 60) % 24).padStart(2, '0');
+  const mm = String(total % 60).padStart(2, '0');
+  return `${hh}:${mm}`;
+}
+
+function recalcLessonEndTimes() {
+  const duration = getLessonDuration();
+  for (let i = 0; i < 8; i++) {
+    const startEl = document.getElementById(`lt-start-${i}`);
+    const endEl = document.getElementById(`lt-end-${i}`);
+    if (startEl && endEl && startEl.value) {
+      endEl.value = addMinutes(startEl.value, duration);
+    }
+  }
+}
+
+function renderLessonTimes() {
+  const tbody = document.getElementById('lesson-times-tbody');
+  const durEl = document.getElementById('lesson-duration');
+  if (durEl) durEl.value = data.lessonDuration || 45;
+
+  let html = '';
+  data.lessonTimes.forEach((lt, idx) => {
+    html += `<tr>
+      <td><strong>${idx + 1}</strong></td>
+      <td><input type="time" value="${lt.start}" id="lt-start-${idx}" oninput="recalcLessonEndTimes()"></td>
+      <td><input type="time" value="${lt.end}" id="lt-end-${idx}" readonly style="background:#f3f4f6;color:var(--text-muted);cursor:default;"></td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+}
+
+function saveLessonTimes() {
+  const duration = getLessonDuration();
+  data.lessonDuration = duration;
+  for (let i = 0; i < 8; i++) {
+    const startEl = document.getElementById(`lt-start-${i}`);
+    if (startEl && startEl.value) {
+      const start = startEl.value;
+      const end = addMinutes(start, duration);
+      data.lessonTimes[i] = { start, end };
+    }
+  }
+  save();
+  notify('Час уроків збережено ✅');
+  renderClassSchedule();
+  highlightCurrentLesson();
+}
+
+function getLessonTimeDisplay(lessonIdx) {
+  const lt = data.lessonTimes[lessonIdx];
+  if (!lt) return '';
+  return `${lt.start}–${lt.end}`;
+}
+
+// ==================== TEACHERS ====================
+function openTeacherModal(id) {
+  const t = id ? data.teachers.find(x => x.id === id) : null;
+  document.getElementById('teacher-modal-title').textContent = id ? '✏️ Редагувати' : '➕ Додати вчителя';
+  document.getElementById('t-id').value = id || '';
+  document.getElementById('t-last').value = t ? t.last : '';
+  document.getElementById('t-first').value = t ? t.first : '';
+  document.getElementById('t-middle').value = t ? t.middle : '';
+  document.getElementById('t-subjects').value = t && t.subjects ? t.subjects.join(', ') : '';
+  document.getElementById('t-hours').value = t && t.hours ? t.hours : 18;
+  document.getElementById('teacher-modal').classList.add('open');
+}
+
+function saveTeacher() {
+  const last = document.getElementById('t-last').value.trim();
+  const first = document.getElementById('t-first').value.trim();
+  if (!last || !first) { alert('Введіть прізвище та ім\'я'); return; }
+  
+  const subjects = document.getElementById('t-subjects').value.split(',').map(s => s.trim()).filter(s => s);
+  const id = document.getElementById('t-id').value;
+  const hours = parseInt(document.getElementById('t-hours').value) || 18;
+  
+  if (id) {
+    const t = data.teachers.find(x => x.id === id);
+    if (t) { t.last = last; t.first = first; t.middle = document.getElementById('t-middle').value.trim(); t.subjects = subjects; t.hours = hours; }
+  } else {
+    data.teachers.push({ id: Date.now().toString(), last, first, middle: document.getElementById('t-middle').value.trim(), subjects, hours });
+  }
+  
+  save(); closeModal('teacher-modal'); renderTeachers(); notify('Вчителя збережено ✅');
+}
+
+function deleteTeacher(id) {
+  if (!confirm('Видалити вчителя?')) return;
+  data.teachers = data.teachers.filter(t => t.id !== id);
+  delete data.schedule[id];
+  save(); renderTeachers(); notify('Вчителя видалено 🗑');
+}
+
+function renderTeachers() {
+  const tbody = document.getElementById('teachers-tbody');
+  if (!data.teachers.length) {
+    tbody.innerHTML = '<tr><td colspan="4"><div class="empty"><div class="empty-icon">👨‍</div><h3>Вчителів немає</h3></div></td></tr>';
+    return;
+  }
+  let html = '';
+  data.teachers.forEach(t => {
+    const loadInfo = getTeacherLoadInfo(t.id);
+    const subjectsHtml = t.subjects && t.subjects.length ? t.subjects.map(s => `<span class="badge badge-primary" style="margin:2px;">${s}</span>`).join('') : '<span style="color:var(--text-muted);">—</span>';
+    const loadBadge = loadInfo.status === 'over' ? 'badge-danger' : loadInfo.status === 'warn' ? 'badge-warning' : 'badge-success';
+    
+    html += `<tr>
+      <td><strong>${t.last} ${t.first} ${t.middle||''}</strong></td>
+      <td>${subjectsHtml}</td>
+      <td><span class="badge ${loadBadge}">${loadInfo.used}/${loadInfo.total} год</span></td>
+      <td>
+        <button class="btn btn-sm btn-secondary" onclick="openTeacherModal('${t.id}')">✏️</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteTeacher('${t.id}')" style="margin-left:4px;">🗑</button>
+      </td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+}
+
+// ==================== CLASSES ====================
+function openClassModal(id) {
+  const c = id ? data.classes.find(x => x.id === id) : null;
+  document.getElementById('class-modal-title').textContent = id ? '✏️ Редагувати' : '➕ Додати клас';
+  document.getElementById('c-id').value = id || '';
+  document.getElementById('c-name').value = c ? c.name : '';
+  document.getElementById('c-students').value = c ? c.students : '';
+  document.getElementById('class-modal').classList.add('open');
+}
+
+function saveClass() {
+  const name = document.getElementById('c-name').value.trim();
+  if (!name) { alert('Введіть назву класу'); return; }
+  const id = document.getElementById('c-id').value;
+  const students = document.getElementById('c-students').value;
+  
+  if (id) {
+    const c = data.classes.find(x => x.id === id);
+    if (c) { c.name = name; c.students = students; }
+  } else {
+    data.classes.push({ id: Date.now().toString(), name, students });
+  }
+  save(); closeModal('class-modal'); renderClasses(); renderClassTags(); notify('Клас збережено ✅');
+}
+
+function deleteClass(id) {
+  if (!confirm('Видалити клас?')) return;
+  data.classes = data.classes.filter(c => c.id !== id);
+  if (selectedClassId === id) selectedClassId = '';
+  save(); renderClasses(); renderClassTags(); notify('Клас видалено 🗑');
+}
+
+function renderClasses() {
+  const tbody = document.getElementById('classes-tbody');
+  if (!data.classes.length) {
+    tbody.innerHTML = '<tr><td colspan="4"><div class="empty"><div class="empty-icon">🎓</div><h3>Класів немає</h3></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.classes.map(c => `<tr>
+    <td><strong style="font-size:16px;">${c.name}</strong></td>
+    <td>${c.students||'—'} учнів</td>
+    <td>—</td>
+    <td>
+      <button class="btn btn-sm btn-secondary" onclick="openClassModal('${c.id}')">✏️</button>
+      <button class="btn btn-sm btn-danger" onclick="deleteClass('${c.id}')" style="margin-left:4px;">🗑</button>
+    </td>
+  </tr>`).join('');
+}
+
+// ==================== CONFLICTS & ABBREVIATIONS ====================
+function findConflicts() {
+  const conflicts = {};
+  const classSchedule = {};
+  for (const teacherId in data.schedule) {
+    for (const day in data.schedule[teacherId]) {
+      for (const lesson in data.schedule[teacherId][day]) {
+        const l = data.schedule[teacherId][day][lesson];
+        const key = l.classId + '_' + day + '_' + lesson + '_' + (l.subgroup||'');
+        if (!classSchedule[key]) classSchedule[key] = [];
+        classSchedule[key].push(teacherId);
+      }
+    }
+  }
+  for (const key in classSchedule) {
+    if (classSchedule[key].length > 1) {
+      const parts = key.split('_');
+      classSchedule[key].forEach(tid => { conflicts[tid + '_' + parts[1] + '_' + parts[2]] = true; });
+    }
+  }
+  return conflicts;
+}
+
+function abbreviateSubject(subject) {
+  if (!subject) return '';
+  const s = subject.toLowerCase();
+  const map = {
+    'математика':'Мат','укр':'Укр','українська':'Укр','літ':'Літ','література':'Літ',
+    'іноз':'Іноз','іноземна':'Іноз','англ':'Англ','англійська':'Англ','фіз':'Фіз','фізика':'Фіз',
+    'хім':'Хім','хімія':'Хім','біо':'Біо','біологія':'Біо','геог':'Геог','географія':'Геог',
+    'іст':'Іст','історія':'Іст','інф':'Інф','інформ':'Інф','інформатика':'Інф','фізк':'Фізк',
+    'фізкультура':'Фізк','муз':'Муз','музика':'Муз','образ':'Обр','образотворче':'Обр',
+    'мистецтво':'Мист','труд':'Труд','трудове':'Труд','прав':'Прав','правознавство':'Прав',
+    'основи':'ОЗ','здоров':'ОЗ','здоров\'я':'ОЗ','геом':'Геом','геометрія':'Геом',
+    'алг':'Алг','алгебра':'Алг','економіка':'Екон','екологія':'Екол','астр':'Астр',
+    'кресл':'Кресл','індив':'Індив','захист':'ЗУ','україни':'ЗУ'
+  };
+  for (const k in map) if (s.indexOf(k) >= 0) return map[k];
+  return subject.length <= 3 ? subject : subject.substring(0, 3) + '.';
+}
+
+// ==================== TEACHER SCHEDULE ====================
+function renderSchedule() {
+  const table = document.getElementById('schedule-table');
+  const dayFilter = document.getElementById('filter-day').value;
+  const lessonFilter = document.getElementById('filter-lesson').value;
+  const search = document.getElementById('filter-search').value.toLowerCase();
+  const currentLesson = getCurrentLesson();
+  
+  if (!data.teachers.length) {
+    table.innerHTML = '<tr><td><div class="empty"><div class="empty-icon">👨‍🏫</div><h3>Спочатку додайте вчителів</h3></div></td></tr>';
+    return;
+  }
+  
+  let teachers = data.teachers.filter(t => t.last.toLowerCase().indexOf(search) >= 0 || t.first.toLowerCase().indexOf(search) >= 0);
+  let daysToShow = dayFilter === 'all' ? DAYS.map((d,i)=>({name:d,index:i})) : [{name:DAYS[parseInt(dayFilter)],index:parseInt(dayFilter)}];
+  const conflicts = findConflicts();
+  
+  // Build header
+  let html = '<thead><tr>';
+  html += '<th>Вчитель</th>';
+  
+  let dayCount = 0;
+  daysToShow.forEach((day, dayIdx) => {
+    const isFirstDay = dayIdx === 0;
+    html += `<th colspan="${lessonFilter==='all'?LESSONS:1}" class="day-header" ${!isFirstDay ? 'style="border-left:2px solid #000;"' : ''}>${day.name}</th>`;
+    dayCount++;
+  });
+  html += '</tr><tr>';
+  html += '<th style="background:#f9fafb;"></th>';
+  
+  daysToShow.forEach((day, dayIdx) => {
+    const isFirstDay = dayIdx === 0;
+    if (lessonFilter === 'all') {
+      for (let l=0; l<LESSONS; l++) {
+        const isCurrent = currentLesson && currentLesson.day === day.index && currentLesson.lesson === l;
+        html += `<th class="lesson-header" ${!isFirstDay && l===0 ? 'style="border-left:2px solid #000;"' : ''} ${isCurrent ? 'style="background:var(--current-lesson);border:2px solid var(--current-lesson-border);"' : ''}>${l+1}</th>`;
+      }
+    } else {
+      const l = parseInt(lessonFilter);
+      const isCurrent = currentLesson && currentLesson.day === day.index && currentLesson.lesson === l;
+      html += `<th class="lesson-header" ${!isFirstDay ? 'style="border-left:2px solid #000;"' : ''} ${isCurrent ? 'style="background:var(--current-lesson);border:2px solid var(--current-lesson-border);"' : ''}>${l+1}</th>`;
+    }
+  });
+  html += '</tr></thead><tbody>';
+  
+  // Build rows
+  teachers.forEach(t => {
+    const loadInfo = getTeacherLoadInfo(t.id);
+    html += `<tr>
+      <td>
+        <div class="teacher-info">
+          <div class="teacher-name">${t.last} ${t.first.charAt(0)}.</div>
+          <div class="teacher-load-bar">
+            <div class="teacher-load-fill ${loadInfo.status}" style="width:${Math.min(loadInfo.percent,100)}%"></div>
+          </div>
+          <div class="teacher-load-text">
+            <span>${loadInfo.used}/${loadInfo.total} год</span>
+            <span>${loadInfo.percent}%</span>
+          </div>
+        </div>
+      </td>`;
+    
+    daysToShow.forEach((day, dayIdx) => {
+      const isFirstDay = dayIdx === 0;
+      if (lessonFilter === 'all') {
+        for (let l=0; l<LESSONS; l++) {
+          const isCurrent = currentLesson && currentLesson.day === day.index && currentLesson.lesson === l;
+          html += `<td ${!isFirstDay && l===0 ? 'class="day-separator"' : ''}>${getCell(t.id, day.index, l, conflicts, isCurrent)}</td>`;
+        }
+      } else {
+        const l = parseInt(lessonFilter);
+        const isCurrent = currentLesson && currentLesson.day === day.index && currentLesson.lesson === l;
+        html += `<td ${!isFirstDay ? 'class="day-separator"' : ''}>${getCell(t.id, day.index, l, conflicts, isCurrent)}</td>`;
+      }
+    });
+    html += '</tr>';
+  });
+  
+  table.innerHTML = html;
+}
+
+function getCell(teacherId, day, lesson, conflicts, isCurrent = false) {
+  const sched = data.schedule[teacherId]?.[day]?.[lesson];
+  const conflictKey = teacherId + '_' + day + '_' + lesson;
+  const isConflict = conflicts[conflictKey];
+  
+  const currentClass = isCurrent ? ' current-lesson' : '';
+  const dataAttrs = `data-day="${day}" data-lesson="${lesson}"`;
+  
+  if (!sched) {
+    return `<div class="teacher-cell${currentClass}" onclick="openLessonModal('${teacherId}',${day},${lesson})" ${dataAttrs}></div>`;
+  }
+  
+  const cls = data.classes.find(c => c.id === sched.classId);
+  const subjectAbbrev = abbreviateSubject(sched.subject);
+  const subgroup = sched.subgroup ? `<span class="class-sub">(${sched.subgroup})</span>` : '';
+  
+  return `<div class="teacher-cell has-class${isConflict?' conflict':''}${currentClass}" onclick="openLessonModal('${teacherId}',${day},${lesson})" ${dataAttrs}>
+    <span class="class-num">${cls?cls.name:'?'}</span>
+    <span class="subject-abbrev">${subjectAbbrev}</span>${subgroup}
+  </div>`;
+}
+
+// ==================== CLASS SCHEDULE ====================
+function renderClassSchedule() {
+  const container = document.getElementById('class-schedule-container');
+  const currentLesson = getCurrentLesson();
+  
+  if (!selectedClassId) {
+    container.innerHTML = '<div class="empty"><div class="empty-icon">📅</div><h3>Оберіть клас для перегляду розкладу</h3></div>';
+    return;
+  }
+  
+  const cls = data.classes.find(c => c.id === selectedClassId);
+  if (!cls) return;
+  
+  let html = `<div class="class-schedule-grid">
+    <div class="cs-header">Урок</div>`;
+  
+  DAYS.forEach(day => {
+    html += `<div class="cs-day-header">${day}</div>`;
+  });
+  
+  for (let l = 0; l < LESSONS; l++) {
+    const timeDisplay = getLessonTimeDisplay(l);
+    const isCurrentRow = currentLesson && currentLesson.lesson === l;
+    html += `<div class="cs-lesson-header" ${isCurrentRow ? 'style="background:var(--current-lesson);border:2px solid var(--current-lesson-border);"' : ''}>
+      <span class="cs-lesson-num">${l + 1}</span>
+      <span class="cs-lesson-time">${timeDisplay}</span>
+    </div>`;
+    
+    for (let d = 0; d < 5; d++) {
+      let lessonHtml = '<div class="cs-empty">-</div>';
+      const isCurrent = currentLesson && currentLesson.day === d && currentLesson.lesson === l;
+      
+      for (const tId in data.schedule) {
+        const lesson = data.schedule[tId][d]?.[l];
+        if (lesson && lesson.classId === selectedClassId) {
+          const t = data.teachers.find(x => x.id === tId);
+          const tName = t ? `${t.last} ${t.first.charAt(0)}.` : '?';
+          const subj = lesson.subject || '—';
+          const sub = lesson.subgroup ? `<div class="cs-subgroup">(${lesson.subgroup})</div>` : '';
+          lessonHtml = `<div class="cs-subject">${subj}</div><div class="cs-teacher">${tName}</div>${sub}`;
+          break;
+        }
+      }
+      
+      html += `<div class="cs-cell has-lesson${isCurrent ? ' current-lesson' : ''}">${lessonHtml}</div>`;
+    }
+  }
+  
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+// ==================== XLSX EXPORT ====================
+function exportTeacherScheduleXLSX() {
+  if (!data.teachers.length) { notify('Немає вчителів для експорту ⚠️'); return; }
+  const wb = XLSX.utils.book_new();
+  const headers = ['Вчитель', 'Предмети', 'Навантаження', 'Використано', '%'];
+  DAYS.forEach(day => { for (let l=1; l<=8; l++) headers.push(`${day} - ${l} урок`); });
+  const rows = [headers];
+  
+  data.teachers.forEach(t => {
+    const loadInfo = getTeacherLoadInfo(t.id);
+    const row = [`${t.last} ${t.first} ${t.middle||''}`, t.subjects ? t.subjects.join(', ') : '', loadInfo.total, loadInfo.used, loadInfo.percent + '%'];
+    for (let d=0; d<5; d++) {
+      for (let l=0; l<8; l++) {
+        const lesson = data.schedule[t.id]?.[d]?.[l];
+        if (lesson) {
+          const cls = data.classes.find(c => c.id === lesson.classId);
+          const subj = abbreviateSubject(lesson.subject);
+          const sub = lesson.subgroup ? ` (${lesson.subgroup})` : '';
+          row.push(`${cls?cls.name:'?'} - ${subj}${sub}`);
+        } else { row.push(''); }
+      }
+    }
+    rows.push(row);
+  });
+  
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{ wch: 25 }, { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 8 }];
+  for (let i=5; i<headers.length; i++) ws['!cols'].push({ wch: 15 });
+  
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for (let C = range.s.c; C <= range.e.c; ++C) {
+    const address = XLSX.utils.encode_col(C) + "1";
+    if (!ws[address]) continue;
+    ws[address].s = { font: { bold: true, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "4F46E5" } }, alignment: { horizontal: "center", vertical: "center" } };
+  }
+  
+  XLSX.utils.book_append_sheet(wb, ws, "Розклад вчителів");
+  XLSX.writeFile(wb, `Розклад_вчителів_${new Date().toISOString().split('T')[0]}.xlsx`);
+  notify('Експорт виконано ✅');
+}
+
+function exportClassScheduleXLSX() {
+  if (!selectedClassId) { notify('Оберіть клас для експорту ⚠️'); return; }
+  const cls = data.classes.find(c => c.id === selectedClassId);
+  if (!cls) return;
+  
+  const wb = XLSX.utils.book_new();
+  const headers = ['Урок', 'Час'];
+  DAYS.forEach(day => headers.push(day));
+  const rows = [headers];
+  
+  const timeRow = ['', ''];
+  for (let l = 0; l < 8; l++) {
+    const lt = data.lessonTimes[l];
+    timeRow.push(lt ? `${lt.start}–${lt.end}` : '');
+  }
+  rows.push(timeRow);
+  
+  for (let l = 0; l < 8; l++) {
+    const row = [`${l + 1}`, data.lessonTimes[l] ? `${data.lessonTimes[l].start}–${data.lessonTimes[l].end}` : ''];
+    for (let d = 0; d < 5; d++) {
+      let cellText = '';
+      for (const tId in data.schedule) {
+        const lesson = data.schedule[tId][d]?.[l];
+        if (lesson && lesson.classId === selectedClassId) {
+          const t = data.teachers.find(x => x.id === tId);
+          const tName = t ? `${t.last} ${t.first.charAt(0)}.` : '?';
+          const subj = lesson.subject || '—';
+          const sub = lesson.subgroup ? ` (${lesson.subgroup})` : '';
+          cellText = `${subj}\n${tName}${sub}`;
+          break;
+        }
+      }
+      row.push(cellText || '—');
+    }
+    rows.push(row);
+  }
+  
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{ wch: 8 }, { wch: 15 }];
+  for (let i = 2; i < headers.length; i++) ws['!cols'].push({ wch: 25 });
+  
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for (let C = range.s.c; C <= range.e.c; ++C) {
+    const address = XLSX.utils.encode_col(C) + "1";
+    if (!ws[address]) continue;
+    ws[address].s = { font: { bold: true, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "4F46E5" } }, alignment: { horizontal: "center", vertical: "center" } };
+  }
+  
+  ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } }];
+  ws['A1'] = { t: 's', v: `РОЗКЛАД КЛАСУ: ${cls.name}`, s: { font: { bold: true, sz: 16, color: { rgb: "4F46E5" } }, alignment: { horizontal: "center", vertical: "center" } } };
+  
+  XLSX.utils.book_append_sheet(wb, ws, cls.name);
+  XLSX.writeFile(wb, `Розклад_${cls.name}_${new Date().toISOString().split('T')[0]}.xlsx`);
+  notify('Експорт виконано ✅');
+}
+
+// ==================== IMPORT / EXPORT ALL DATA ====================
+function exportAllData() {
+  const dataStr = JSON.stringify(data, null, 2);
+  const blob = new Blob([dataStr], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `school_backup_${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  notify('Резервну копію завантажено ✅');
+}
+
+function importAllData() {
+  const fileInput = document.getElementById('import-file');
+  const file = fileInput.files[0];
+  
+  if (!file) {
+    notify('Оберіть файл для імпорту ⚠️');
+    return;
+  }
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const importedData = JSON.parse(e.target.result);
+      
+      if (!importedData.teachers || !importedData.classes || !importedData.schedule) {
+        throw new Error('Невірний формат файлу');
+      }
+      
+      if (confirm('Це замінить усі поточні дані. Продовжити?')) {
+        data = importedData;
+        if (!data.lessonTimes || data.lessonTimes.length !== 8) {
+          data.lessonTimes = [
+			{ start: '08:30', end: '09:15' },
+			{ start: '09:25', end: '10:10' },
+			{ start: '10:30', end: '11:15' },
+			{ start: '11:35', end: '12:20' },
+			{ start: '12:30', end: '13:15' },
+			{ start: '13:25', end: '14:10' },
+			{ start: '14:20', end: '15:05' },
+			{ start: '15:10', end: '15:50' }
+          ];
+        }
+        save();
+        renderTeachers();
+        renderClasses();
+        renderClassTags();
+        renderLessonTimes();
+        updateInfo();
+        highlightCurrentLesson();
+        notify('Дані успішно відновлено! ✅');
+        fileInput.value = '';
+      }
+    } catch (err) {
+      notify('Помилка імпорту: файл пошкоджено ❌');
+      console.error(err);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function clearAllData() {
+  if (confirm('⚠️ УВАГА! Це видалить ВСІХ вчителів, класи та розклад назавжди. Продовжити?')) {
+    if (confirm('Ви впевнені? Це дія незворотня.')) {
+      data = { teachers: [], classes: [], schedule: {}, lessonTimes: [
+		{ start: '08:30', end: '09:15' },
+		{ start: '09:25', end: '10:10' },
+		{ start: '10:30', end: '11:15' },
+		{ start: '11:35', end: '12:20' },
+		{ start: '12:30', end: '13:15' },
+		{ start: '13:25', end: '14:10' },
+		{ start: '14:20', end: '15:05' },
+		{ start: '15:10', end: '15:50' }
+      ]};
+      selectedClassId = '';
+      save();
+      renderTeachers();
+      renderClasses();
+      renderClassTags();
+      renderLessonTimes();
+      updateInfo();
+      notify('Всі дані очищено 🗑');
+    }
+  }
+}
+
+function clearAllSchedule() {
+  if (!confirm('Очистити ВЕСЬ розклад?')) return;
+  data.schedule = {};
+  save(); renderSchedule(); renderClassSchedule(); notify('Розклад очищено 🗑');
+}
+
+// ==================== LESSON MODAL & ACTIONS ====================
+function openLessonModal(teacherId, day, lesson) {
+  const t = data.teachers.find(x => x.id === teacherId);
+  if (!t) return;
+  
+  const loadInfo = getTeacherLoadInfo(teacherId);
+  const conflicts = findConflicts();
+  const isConflict = conflicts[teacherId + '_' + day + '_' + lesson];
+  
+  const conflictWarning = isConflict ? '<div style="color:var(--danger);font-weight:600;margin-top:8px;">⚠️ Конфлікт!</div>' : '';
+  const loadWarning = loadInfo.percent >= 100 ? '<div style="color:var(--danger);font-weight:600;margin-top:8px;">⚠️ Перевантаження!</div>' : '';
+  
+  document.getElementById('lesson-info').innerHTML = `<strong>${t.last} ${t.first.charAt(0)}.</strong> | ${DAYS[day]} | ${lesson + 1} урок (${getLessonTimeDisplay(lesson)})
+    <div style="margin-top:8px;">📊 Навантаження: ${loadInfo.used}/${loadInfo.total} год (${loadInfo.percent}%)</div>
+    ${conflictWarning}${loadWarning}`;
+  
+  document.getElementById('l-teacher').value = teacherId;
+  document.getElementById('l-day').value = day;
+  document.getElementById('l-lesson').value = lesson;
+  
+  const classSel = document.getElementById('l-class');
+  classSel.innerHTML = data.classes.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  
+  const subjSel = document.getElementById('l-subject');
+  subjSel.innerHTML = t.subjects && t.subjects.length ? t.subjects.map(s => `<option>${s}</option>`).join('') : '<option>Немає предметів</option>';
+  
+  const existing = data.schedule[teacherId]?.[day]?.[lesson];
+  const deleteBtn = document.getElementById('btn-delete-lesson');
+  
+  if (existing) {
+    classSel.value = existing.classId;
+    subjSel.value = existing.subject;
+    document.getElementById('l-subgroup').value = existing.subgroup || '';
+    deleteBtn.style.display = 'block';
+  } else {
+    deleteBtn.style.display = 'none';
+  }
+  
+  document.getElementById('lesson-modal').classList.add('open');
+}
+
+function saveLesson() {
+  const teacherId = document.getElementById('l-teacher').value;
+  const day = parseInt(document.getElementById('l-day').value);
+  const lesson = parseInt(document.getElementById('l-lesson').value);
+  const classId = document.getElementById('l-class').value;
+  const subject = document.getElementById('l-subject').value;
+  const subgroup = document.getElementById('l-subgroup').value;
+  
+  if (!classId) { alert('Оберіть клас'); return; }
+  
+  if (!data.schedule[teacherId]) data.schedule[teacherId] = {};
+  if (!data.schedule[teacherId][day]) data.schedule[teacherId][day] = {};
+  
+  data.schedule[teacherId][day][lesson] = { classId, subject, subgroup };
+  save(); closeModal('lesson-modal'); renderSchedule(); renderClassSchedule(); notify('Урок збережено ✅');
+}
+
+function deleteLessonFromModal() {
+  if (!confirm('Видалити цей урок?')) return;
+  
+  const teacherId = document.getElementById('l-teacher').value;
+  const day = parseInt(document.getElementById('l-day').value);
+  const lesson = parseInt(document.getElementById('l-lesson').value);
+  
+  if (data.schedule[teacherId] && data.schedule[teacherId][day]) {
+    delete data.schedule[teacherId][day][lesson];
+  }
+  
+  save(); closeModal('lesson-modal'); renderSchedule(); renderClassSchedule(); notify('Урок видалено 🗑');
+}
+
+function quickImportData(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const importedData = JSON.parse(e.target.result);
+      if (!importedData.teachers || !importedData.classes || !importedData.schedule) {
+        throw new Error('Невірний формат файлу');
+      }
+      data = importedData;
+      if (!data.lessonTimes || data.lessonTimes.length !== 8) {
+        data.lessonTimes = [
+			{ start: '08:30', end: '09:15' },
+			{ start: '09:25', end: '10:10' },
+			{ start: '10:30', end: '11:15' },
+			{ start: '11:35', end: '12:20' },
+			{ start: '12:30', end: '13:15' },
+			{ start: '13:25', end: '14:10' },
+			{ start: '14:20', end: '15:05' },
+			{ start: '15:10', end: '15:50' }
+        ];
+      }
+      save();
+      renderTeachers();
+      renderClasses();
+      renderClassTags();
+      renderLessonTimes();
+      updateInfo();
+      highlightCurrentLesson();
+      notify('✅ Дані успішно завантажено з файлу!');
+    } catch (err) {
+      notify('❌ Помилка: файл пошкоджено або має невірний формат');
+      console.error(err);
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function printSchedule() { window.print(); }
+
+// ==================== UTILS ====================
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function notify(msg) {
+  const el = document.createElement('div');
+  el.className = 'notification'; el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2500);
+}
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+});
+document.addEventListener('DOMContentLoaded', load);
+</script>
+</body>
+</html>
